@@ -1,4 +1,5 @@
 # SoalShift_Modul4_C15
+### Risky Aswi Narni(05111740000014) C-15
 ## soal1
 Semua nama file dan folder harus terenkripsi
 Enkripsi yang Atta inginkan sangat sederhana, yaitu Caesar cipher. Namun, Kusuma mengatakan enkripsi tersebut sangat mudah dipecahkan. Dia menyarankan untuk character list diekspansi,tidak hanya alfabet, dan diacak. Berikut character list yang dipakai:
