@@ -4,7 +4,10 @@
 Semua nama file dan folder harus terenkripsi
 Enkripsi yang Atta inginkan sangat sederhana, yaitu Caesar cipher. Namun, Kusuma mengatakan enkripsi tersebut sangat mudah dipecahkan. Dia menyarankan untuk character list diekspansi,tidak hanya alfabet, dan diacak. Berikut character list yang dipakai:
 
-qE1~ YMUR2"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\8s;g<{3.u*W-0
+qE1~ YMUR2"`hNIdPzi%^t@(Ao:=CQ,nx4S[7mHFye#aT6+v)DfKL$r?bkOGB>}!9_wV']jcp5JZ&Xl|\8s;g<{3.u*W-0`
+membuat fungsi enkrip dan dekrip, untuk enkrip : suku kata tersebut + key% sumlah suku kata list
+					dekrip : suku kata tersebut - key % jumlah suku kat list
+
 
 ```void enc(char* encrypt)
 {
@@ -52,6 +55,43 @@ Jangan tampilkan file pecahan di direktori manapun
 Tepat saat file system akan di-unmount
 Hapus semua file video yang berada di folder “Videos”, tapi jangan hapus file pecahan yang terdapat di root directory file system
 Hapus folder “Videos” 
+
+
+fuse init harus diimplementasikan sendiri pada program fuse untuk melakukan permintaan sebelum file system di mount.
+
+```static void xmp_init(struct fuse_conn_info *conn){
+	char videos[1000] = "Videos";
+	enc(videos);
+	enc(youtuber);
+	enc(filemiris);
+	enc(iz1);
+	sprintf(videosPath, "%s/%s", dirpath, videos);
+	mkdir(videosPath, 0777);
+	counter = 0;
+	DIR* dp;
+	struct dirent *de;
+	dp = opendir(dirpath);
+	while((de = readdir(dp)) != NULL){
+		char temp[1000];
+		sprintf(temp, "%s", de->d_name);
+		dec(temp);
+		printf("init temp %s\n", temp);
+		if (isVideo(temp)){
+			char namadepan[1000];
+			int len = strlen(temp);
+			sprintf(namadepan, "%s", temp);
+			namadepan[len - 4] = '\0';
+			pthread_create(&(buruhVideo[counter++]), NULL, &gabungVideo, (void *)namadepan);
+		}
+	}
+	printf("%d\n", counter);
+	return;
+}
+
+```
+fungsi gabungVideo merupakan fungsi yang akan diberikan kepada sebuah thread untuk menggabungkan video yang sudah dinyatakan benar. Fungsi gabungVideo mengambil sebuah parameter yaitu namadepan dari sebuah file pecahan.
+
+
 ```void *gabungVideo(void *param){
 	DIR *dp;
 	struct dirent *de;
@@ -92,6 +132,9 @@ Hapus folder “Videos”
 	}
 	printf("gabung video selesai\n");
 }
+```
+fungsi isVideo yang digunakan untuk memeriksa apakah sebuah file merupakan video. Intinya fungsi ini memeriksa apakah namafile yang diperiksa ber ekstensi .000
+```
 
 int isVideo(const char *path){
 	char temp[1000];
@@ -113,6 +156,21 @@ Owner Name     : ‘chipset’ atau ‘ic_controller’
 Group Name    : ‘rusak’
 Tidak dapat dibaca
 Jika ditemukan file dengan spesifikasi tersebut ketika membuka direktori, Atta akan menyimpan nama file, group ID, owner ID, dan waktu terakhir diakses dalam file “filemiris.txt” (format waktu bebas, namun harus memiliki jam menit detik dan tanggal) lalu menghapus “file bahaya” tersebut untuk mencegah serangan lanjutan dari LAPTOP_RUSAK.
+1. adduser:chipset &ic_controller
+2. addgroup: rusak
+```
+if (strcmp(pwd->pw_name, "ic-controller") == 0 || strcmp(pwd->pw_name, "chipset") == 0){
+		if (strcmp(grp->gr_name, "rusak") == 0){
+			if (access(path, R_OK) != 0){
+				ans = 1;
+			}
+```
+karena root:root, maka diubah dulu dengan chown chipset:rusak atau chown ic_controller:rusak [namafile],
+maka id dan grou akan berubah, dan di remove pindah di filemiris.txt.
+ketika di chmod 0000 [namafile] maka akan tidak bisa dibaca dan di remove pindah di filemiris.txt.
+
+
+
 ```void eksekusiBahaya(const char *path, const char* name){
 	struct stat stat;
 	lstat(path, &stat);
@@ -148,6 +206,8 @@ Jika ditemukan file dengan spesifikasi tersebut ketika membuka direktori, Atta a
 
 ## soal4
 Pada folder YOUTUBER, setiap membuat folder permission foldernya akan otomatis menjadi 750. Juga ketika membuat file permissionnya akan otomatis menjadi 640 dan ekstensi filenya akan bertambah “.iz1”. File berekstensi “.iz1” tidak bisa diubah permissionnya dan memunculkan error bertuliskan “File ekstensi iz1 tidak boleh diubah permissionnya.”
+
+ketika ada folder YOUTUBER Dan didalamnya terdapat file2 dan direktori/folder maka namanama file dan folder akan bertambah ekstensi .iz1 di belakangnya
 ```
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
@@ -179,6 +239,38 @@ static int xmp_getattr(const char *path, struct stat *stbuf)
 	return 0;
 }
 
+```
+ketika folder dapat dirubah permissionnya dan untuk file tidak dapat drubah permissionnya
+
+```
+
+static int xmp_chmod(const char *path, mode_t mode)
+{
+	int res;
+	char fpath[1000];
+	char name[1000];
+	sprintf(name,"%s",path);
+	enc(name);
+	sprintf(fpath, "%s%s",dirpath,name);
+	struct stat statt;
+	lstat(fpath, &statt);
+	if (strstr(fpath, youtuber) && S_ISREG(statt.st_mode)){
+		pid_t child = fork();
+		int status;
+		if (child == 0){
+			char *argv[5] = {"zenity", "--error", "--title=Pesan error", "--text=File ekstensi iz1 tidak boleh diubah permissionnya.", NULL};
+			execv("/usr/bin/zenity", argv);
+		}else{
+			while (wait(&status) > 0);
+		}
+	}else{
+		res = chmod(fpath, mode);	
+	}
+	if (res == -1)
+		return -errno;
+
+	return 0;
+}
 static int xmp_mkdir(const char *path, mode_t mode)
 {
 	int res;
@@ -223,6 +315,9 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
 ```
 ## soal5
 Ketika mengedit suatu file dan melakukan save, maka akan terbuat folder baru bernama Backup kemudian hasil dari save tersebut akan disimpan pada backup dengan nama namafile_[timestamp].ekstensi. Dan ketika file asli dihapus, maka akan dibuat folder bernama RecycleBin, kemudian file yang dihapus beserta semua backup dari file yang dihapus tersebut (jika ada) di zip dengan nama namafile_deleted_[timestamp].zip dan ditaruh ke dalam folder RecycleBin (file asli dan backup terhapus). Dengan format [timestamp] adalah yyyy-MM-dd_HH:mm:ss
+
+xmp_unlink fungsi untuk ketika file yang dihapus maka akan dibuatkan folder RecycleBin
+Kemudian file yang dihapus beserta semua backup dari file yang dihapus tersebut di zip dan dimasukkan dalam RecycleBin 
 ```static int xmp_unlink(const char *path)
 {
 	char fpath[1000], temp[1000];
@@ -291,7 +386,11 @@ Ketika mengedit suatu file dan melakukan save, maka akan terbuat folder baru ber
 
 	return 0;
 }
-
+```
+xmp_write() membuat folder backup
+kita akan mendapatkan nama file saja dan ekstensinya saja disimpan di namafile
+dan menyimpan waktu di var waktu
+```
 static int xmp_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
